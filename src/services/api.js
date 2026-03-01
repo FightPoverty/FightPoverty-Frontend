@@ -40,7 +40,7 @@ api.interceptors.response.use(
 
       try {
         // 呼叫刷新 token API
-        await axios.post('/api/auth/refresh', {}, {
+        await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, {
           withCredentials: true
         });
 
