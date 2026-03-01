@@ -2,7 +2,10 @@ import axios from 'axios';
 
 // 創建 axios 實例
 const api = axios.create({
-  baseURL: '/api',
+  // 生產環境 (Zeabur)：VITE_API_URL 會讀取到我們設定的 https://backend.zeabur.app/api
+  // 本地開發 (Local/Docker)：VITE_API_URL 為空，自動 Fallback 使用相對路徑 '/api'，
+  // 接著交由 vite.config.js 裡的 proxy 去接手並轉發給 localhost:3001 或 backend:3001
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   withCredentials: true, // 允許發送 cookies
   headers: {
     'Content-Type': 'application/json'
