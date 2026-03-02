@@ -14,9 +14,16 @@ export const useAuth = () => {
   const checkAuth = async () => {
     try {
       setLoading(true);
-      const response = await authService.verifyToken();
-      if (response.success) {
-        setUser(response.user);
+      // 先驗證 token 是否有效
+      const verifyResponse = await authService.verifyToken();
+      if (verifyResponse.success) {
+        // 如果有效，取得完整使用者資訊
+        const meResponse = await authService.getCurrentUser();
+        if (meResponse.success) {
+          setUser(meResponse.user);
+        } else {
+          setUser(verifyResponse.user);
+        }
       }
     } catch (err) {
       console.log('Not authenticated');

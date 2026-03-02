@@ -1,35 +1,85 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
+import { getScanUrl } from '../../utils/publicUrl';
+import { transactionService } from '../../services/auth';
 
 const HomelessDashboard = ({ user, onLogout }) => {
   const [qrCodeDataURL, setQrCodeDataURL] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // 模擬無家者資料
+  const [transactions, setTransactions] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const LIMIT = 10;
+
+  // 從登入用戶資料取得街友資訊（API 響應已自動轉換為 camelCase）
   const homelessData = {
-    name: '張小明',
-    idNumber: 'A123456789',
-    qrCode: 'QR_001',
-    balance: 150,
-    recentTransactions: [
-      { id: 1, date: '2025-10-02', store: 'ABC餐廳', item: '午餐套餐', points: -80, type: 'expense' },
-      { id: 2, date: '2025-10-01', store: 'NGO分配', item: '捐款分配', points: +100, type: 'income' },
-      { id: 3, date: '2025-09-30', store: '洗衣店', item: '洗衣服務', points: -50, type: 'expense' },
-      { id: 4, date: '2025-09-29', store: 'NGO分配', item: '捐款分配', points: +80, type: 'income' }
-    ],
-    emergencyContacts: [
-      { name: 'NGO 辦公室', phone: '02-1234-5678' },
-      { name: '社工師 王小美', phone: '0987-654-321' }
-    ]
+    name: user?.name || '使用者',
+    idNumber: user?.idNumber || '',
+    qrCode: user?.qrCode || '',
+    balance: user?.balance || 0,
+    emergencyContact: user?.emergencyContact || '',
+    emergencyPhone: user?.emergencyPhone || ''
   };
+
+  // 載入交易紀錄
+  const fetchTransactions = async (pageNum = 1, append = false) => {
+    try {
+      if (append) {
+        setIsLoadingMore(true);
+      }
+      const response = await transactionService.getAll({
+        homelessId: user?.homelessId,
+        page: pageNum,
+        limit: LIMIT
+      });
+      if (response.success) {
+        const newTransactions = response.data.map(tx => ({
+          id: tx.id,
+          date: tx.createdAt?.split('T')[0] || '',
+          store: tx.storeName || '商店',
+          item: tx.productName,
+          points: -tx.amount,
+          type: 'expense'
+        }));
+
+        if (append) {
+          setTransactions(prev => [...prev, ...newTransactions]);
+        } else {
+          setTransactions(newTransactions);
+        }
+
+        // 檢查是否還有更多資料
+        const totalPages = response.meta?.totalPages || 1;
+        setHasMore(pageNum < totalPages);
+      }
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // 載入更多
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchTransactions(nextPage, true);
+  };
+
+  useEffect(() => {
+    if (user?.homelessId) {
+      fetchTransactions();
+    }
+  }, [user?.homelessId]);
 
   // 生成 QR Code
   useEffect(() => {
     const generateQRCode = async () => {
       try {
         setIsLoading(true);
-        // 生成掃描 URL
-        const scanUrl = `${window.location.origin}/scan/${homelessData.qrCode}`;
+        // 生成掃描 URL（使用 VITE_PUBLIC_URL 以便 ngrok 測試時 QR 指向正確網址）
+        const scanUrl = getScanUrl(homelessData.qrCode);
 
         const dataURL = await QRCode.toDataURL(scanUrl, {
           width: 200,
@@ -155,20 +205,22 @@ const HomelessDashboard = ({ user, onLogout }) => {
                 <span className="font-medium">{homelessData.qrCode}</span>
               </div>
               
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">緊急聯絡人</h4>
-                {homelessData.emergencyContacts.map((contact, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 bg-gray-50 rounded-lg px-3 mb-2">
-                    <span className="text-sm text-gray-700">{contact.name}</span>
-                    <a 
-                      href={`tel:${contact.phone}`}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      {contact.phone}
-                    </a>
+              {(homelessData.emergencyContact || homelessData.emergencyPhone) && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">緊急聯絡人</h4>
+                  <div className="flex justify-between items-center py-2 bg-gray-50 rounded-lg px-3 mb-2">
+                    <span className="text-sm text-gray-700">{homelessData.emergencyContact || '緊急聯絡人'}</span>
+                    {homelessData.emergencyPhone && (
+                      <a
+                        href={`tel:${homelessData.emergencyPhone}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {homelessData.emergencyPhone}
+                      </a>
+                    )}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -181,12 +233,12 @@ const HomelessDashboard = ({ user, onLogout }) => {
           </h3>
           
           <div className="space-y-3">
-            {homelessData.recentTransactions.map((transaction) => (
+            {transactions.length > 0 ? transactions.map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                    transaction.type === 'income' 
-                      ? 'bg-green-100 text-green-600' 
+                    transaction.type === 'income'
+                      ? 'bg-green-100 text-green-600'
                       : 'bg-red-100 text-red-600'
                   }`}>
                     {transaction.type === 'income' ? '💰' : '🛍️'}
@@ -205,14 +257,24 @@ const HomelessDashboard = ({ user, onLogout }) => {
                   </p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-4 text-gray-500">
+                尚無消費記錄
+              </div>
+            )}
           </div>
 
-          <div className="mt-4 text-center">
-            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              查看更多記錄
-            </button>
-          </div>
+          {hasMore && transactions.length > 0 && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium disabled:opacity-50"
+              >
+                {isLoadingMore ? '載入中...' : '查看更多記錄'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 使用須知 */}

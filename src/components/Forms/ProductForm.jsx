@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 
+// 分類選項對照
+const CATEGORY_OPTIONS = [
+  { value: 'meals', label: '餐點' },
+  { value: 'services', label: '服務' },
+  { value: 'daily_necessities', label: '生活用品' },
+  { value: 'medical', label: '醫療' },
+  { value: 'other', label: '其他' }
+];
+
 const ProductForm = ({ product, onSave, onCancel, isOpen }) => {
   const [formData, setFormData] = useState({
     name: '',
     points: '',
     category: '',
     description: '',
-    status: 'active',
-    image: null
+    status: 'active'
   });
   const [errors, setErrors] = useState({});
-  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -19,8 +26,7 @@ const ProductForm = ({ product, onSave, onCancel, isOpen }) => {
         points: product.points || '',
         category: product.category || '',
         description: product.description || '',
-        status: product.status || 'active',
-        image: product.image || null
+        status: product.status || 'active'
       });
     } else {
       setFormData({
@@ -28,8 +34,7 @@ const ProductForm = ({ product, onSave, onCancel, isOpen }) => {
         points: '',
         category: '',
         description: '',
-        status: 'active',
-        image: null
+        status: 'active'
       });
     }
   }, [product]);
@@ -76,48 +81,12 @@ const ProductForm = ({ product, onSave, onCancel, isOpen }) => {
       ...formData,
       [name]: value
     });
-    
+
     if (errors[name]) {
       setErrors({
         ...errors,
         [name]: ''
       });
-    }
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setIsUploading(true);
-      
-      // 模擬 OCR 處理
-      const reader = new FileReader();
-      reader.onload = () => {
-        setTimeout(() => {
-          // 模擬 OCR 識別結果
-          const mockOCRResults = [
-            { name: '牛肉麵', points: 80, category: '餐點' },
-            { name: '雞腿便當', points: 75, category: '餐點' },
-            { name: '洗衣服務', points: 50, category: '服務' },
-            { name: '理髮', points: 100, category: '服務' }
-          ];
-          
-          const randomResult = mockOCRResults[Math.floor(Math.random() * mockOCRResults.length)];
-          
-          setFormData({
-            ...formData,
-            name: randomResult.name,
-            points: randomResult.points,
-            category: randomResult.category,
-            description: `由 OCR 自動識別：${randomResult.name}`,
-            image: reader.result
-          });
-          
-          setIsUploading(false);
-          alert('OCR 識別完成！已自動填入商品資訊，請確認後儲存。');
-        }, 2000);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -142,54 +111,7 @@ const ProductForm = ({ product, onSave, onCancel, isOpen }) => {
             </button>
           </div>
 
-          {/* OCR 上傳區域 */}
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-dashed border-blue-300">
-            <div className="text-center">
-              <svg className="mx-auto h-12 w-12 text-blue-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <div className="mt-2">
-                <label htmlFor="menu-upload" className="cursor-pointer">
-                  <span className="mt-2 block text-sm font-medium text-blue-600">
-                    {isUploading ? '正在處理 OCR...' : '上傳 Menu 照片 (OCR 自動識別)'}
-                  </span>
-                  <input
-                    id="menu-upload"
-                    name="menu-upload"
-                    type="file"
-                    className="sr-only"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    disabled={isUploading}
-                  />
-                </label>
-                <p className="text-xs text-gray-500 mt-1">
-                  支援 JPG, PNG 格式，系統將自動識別商品名稱和價格
-                </p>
-              </div>
-              {isUploading && (
-                <div className="mt-2">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-sm text-blue-600 mt-1">AI 正在識別中...</p>
-                </div>
-              )}
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-4">
-            {formData.image && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  上傳的圖片預覽
-                </label>
-                <img 
-                  src={formData.image} 
-                  alt="商品圖片" 
-                  className="w-32 h-32 object-cover rounded-lg border"
-                />
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -243,11 +165,9 @@ const ProductForm = ({ product, onSave, onCancel, isOpen }) => {
                   } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="">請選擇分類</option>
-                  <option value="餐點">餐點</option>
-                  <option value="服務">服務</option>
-                  <option value="生活用品">生活用品</option>
-                  <option value="醫療">醫療</option>
-                  <option value="其他">其他</option>
+                  {CATEGORY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category}</p>
@@ -294,8 +214,7 @@ const ProductForm = ({ product, onSave, onCancel, isOpen }) => {
               </button>
               <button
                 type="submit"
-                disabled={isUploading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 {product ? '更新' : '新增'}
               </button>

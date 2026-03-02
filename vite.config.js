@@ -8,7 +8,8 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',   // ← Docker 裡要用 0.0.0.0
     port: 5173,
-    open: true,
+    open: false,  // Docker 環境不自動開啟瀏覽器
+    allowedHosts: true,  // 允許 ngrok 等轉發網域（ngrok 網址每次不同）
     proxy: {
       '/api': {
         // 如果有 VITE_API_URL 則優先使用 (前端構建時指定)

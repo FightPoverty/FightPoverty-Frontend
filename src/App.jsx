@@ -6,7 +6,6 @@ import StoreDashboard from './pages/Store/Dashboard';
 import AssociationDashboard from './pages/Association/Dashboard';
 import HomelessDashboard from './pages/Homeless/Dashboard';
 import QRScanResult from './pages/Scan/QRScanResult';
-import StoreScanResult from './pages/Scan/StoreScanResult';
 import { USER_ROLES } from './constants/userRoles';
 import { useAuth } from './hooks/useAuth';
 
@@ -54,9 +53,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* 公開路由 - QR 掃描結果頁面 */}
+        {/* 公開路由 - QR 掃描結果頁面（商家掃描街友 QR Code） */}
         <Route path="/scan/:qrCode" element={<QRScanResult />} />
-        <Route path="/store-scan/:storeQrCode" element={<StoreScanResult />} />
 
         {/* 登入頁面 */}
         <Route

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { homelessService, transactionService } from '../../services/auth';
+import { homelessService, transactionService, productService } from '../../services/auth';
 
 const QRScanResult = () => {
   const { qrCode } = useParams();
@@ -14,14 +14,29 @@ const QRScanResult = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [transactionResult, setTransactionResult] = useState(null);
+  const [storeProducts, setStoreProducts] = useState([]);
 
-  // 店家的商品（應該從登入的店家資料中取得）
-  const storeProducts = user?.role === 'store' ? [
-    { id: 1, name: '午餐套餐', points: 80, description: '主菜+湯+飲料' },
-    { id: 2, name: '早餐組合', points: 50, description: '三明治+咖啡' },
-    { id: 3, name: '晚餐套餐', points: 100, description: '雙主菜+湯+飲料+甜點' },
-    { id: 4, name: '單點飲料', points: 20, description: '任選一杯飲料' }
-  ] : [];
+  // 載入商店產品（只載入上架的商品）
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (user?.role === 'store' && user?.storeId) {
+        try {
+          const response = await productService.getByStore(user.storeId, { status: 'active' });
+          if (response.success) {
+            setStoreProducts(response.data.map(p => ({
+              id: p.id,
+              name: p.name,
+              points: p.points,
+              description: p.description || ''
+            })));
+          }
+        } catch (error) {
+          console.error('Failed to fetch products:', error);
+        }
+      }
+    };
+    fetchProducts();
+  }, [user?.storeId, user?.role]);
 
   useEffect(() => {
     fetchHomelessData();
@@ -51,9 +66,10 @@ const QRScanResult = () => {
       return;
     }
 
-    const selectedProductData = storeProducts.find(p => p.id === parseInt(selectedProduct));
+    const selectedProductData = storeProducts.find(p => String(p.id) === selectedProduct);
     const amount = selectedProduct ? selectedProductData?.points : parseInt(customAmount);
     const productName = selectedProduct ? selectedProductData?.name : '自訂消費';
+    const productId = selectedProduct ? selectedProductData?.id : null;
 
     if (amount > homelessData.balance) {
       setTransactionResult({
@@ -73,7 +89,8 @@ const QRScanResult = () => {
     try {
       const response = await transactionService.create({
         homelessQrCode: qrCode,
-        storeQrCode: user?.qrCode || 'STORE_QR_001',
+        storeQrCode: user?.storeQrCode || '',
+        productId,
         amount,
         productName
       });
@@ -84,13 +101,13 @@ const QRScanResult = () => {
           message: '交易成功',
           amount,
           productName,
-          newBalance: response.data.newBalance
+          newBalance: response.data.balanceAfter
         });
 
         // 更新本地街友餘額
         setHomelessData(prev => ({
           ...prev,
-          balance: response.data.newBalance
+          balance: response.data.balanceAfter
         }));
       } else {
         setTransactionResult({
@@ -299,11 +316,11 @@ const QRScanResult = () => {
                 <div
                   key={product.id}
                   onClick={() => {
-                    setSelectedProduct(product.id.toString());
+                    setSelectedProduct(String(product.id));
                     setCustomAmount('');
                   }}
                   className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                    selectedProduct === product.id.toString()
+                    selectedProduct === String(product.id)
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-blue-300'
                   }`}

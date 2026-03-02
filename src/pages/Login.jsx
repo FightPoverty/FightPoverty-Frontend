@@ -237,8 +237,14 @@ const Login = ({ onLogin }) => {
               協會管理員
             </button>
             <button
+              onClick={() => quickLogin(USER_ROLES.ASSOCIATION_PARTNER)}
+              className="px-3 py-2 text-xs bg-teal-100 text-teal-800 rounded-md hover:bg-teal-200 transition-colors"
+            >
+              協會夥伴
+            </button>
+            <button
               onClick={() => quickLogin(USER_ROLES.HOMELESS)}
-              className="col-span-2 px-3 py-2 text-xs bg-orange-100 text-orange-800 rounded-md hover:bg-orange-200 transition-colors"
+              className="px-3 py-2 text-xs bg-orange-100 text-orange-800 rounded-md hover:bg-orange-200 transition-colors"
             >
               無家者 (街友)
             </button>

@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
+import { getScanUrl } from '../../utils/publicUrl';
 
 const QRCodeModal = ({ person, isOpen, onClose }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && person && canvasRef.current) {
-      // 生成掃描 URL
-      const scanUrl = `${window.location.origin}/scan/${person.qrCode}`;
+      // 生成掃描 URL（使用 VITE_PUBLIC_URL 以便 ngrok 測試時 QR 指向正確網址）
+      const scanUrl = getScanUrl(person.qrCode);
 
       // 清空容器
       canvasRef.current.innerHTML = '';

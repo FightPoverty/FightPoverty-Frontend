@@ -41,21 +41,25 @@ const HomelessForm = ({ person, onSave, onCancel, isOpen }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = '請輸入姓名';
     }
-    
+
     if (!formData.idNumber.trim()) {
       newErrors.idNumber = '請輸入身分證字號';
     } else if (!/^[A-Z][12][0-9]{8}$/.test(formData.idNumber)) {
       newErrors.idNumber = '身分證字號格式不正確';
     }
-    
-    if (formData.phone && !/^09\d{8}$/.test(formData.phone.replace(/[-\s]/g, ''))) {
-      newErrors.phone = '手機號碼格式不正確';
+
+    if (formData.phone && !/^09\d{8}$/.test(formData.phone)) {
+      newErrors.phone = '手機號碼格式不正確（例：0912345678）';
     }
-    
+
+    if (formData.emergencyPhone && !/^\d{8,10}$/.test(formData.emergencyPhone)) {
+      newErrors.emergencyPhone = '請輸入 8-10 位數字的電話號碼';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -84,7 +88,25 @@ const HomelessForm = ({ person, onSave, onCancel, isOpen }) => {
       ...formData,
       [name]: value
     });
-    
+
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ''
+      });
+    }
+  };
+
+  // 只允許輸入數字的處理函式
+  const handlePhoneChange = (e) => {
+    const { name, value } = e.target;
+    // 過濾掉非數字字元
+    const digitsOnly = value.replace(/\D/g, '');
+    setFormData({
+      ...formData,
+      [name]: digitsOnly
+    });
+
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -162,7 +184,8 @@ const HomelessForm = ({ person, onSave, onCancel, isOpen }) => {
                   type="tel"
                   name="phone"
                   value={formData.phone}
-                  onChange={handleChange}
+                  onChange={handlePhoneChange}
+                  maxLength={10}
                   className={`block w-full border rounded-md px-3 py-2 ${
                     errors.phone ? 'border-red-300' : 'border-gray-300'
                   } focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -227,10 +250,16 @@ const HomelessForm = ({ person, onSave, onCancel, isOpen }) => {
                   type="tel"
                   name="emergencyPhone"
                   value={formData.emergencyPhone}
-                  onChange={handleChange}
-                  className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="緊急聯絡電話"
+                  onChange={handlePhoneChange}
+                  maxLength={10}
+                  className={`block w-full border rounded-md px-3 py-2 ${
+                    errors.emergencyPhone ? 'border-red-300' : 'border-gray-300'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  placeholder="緊急聯絡電話（8-10 位數字）"
                 />
+                {errors.emergencyPhone && (
+                  <p className="mt-1 text-sm text-red-600">{errors.emergencyPhone}</p>
+                )}
               </div>
             </div>
 
