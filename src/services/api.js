@@ -60,7 +60,6 @@ const api = axios.create({
   // 本地開發 (Local/Docker)：VITE_API_URL 為空，自動 Fallback 使用相對路徑 '/api'，
   // 接著交由 vite.config.js 裡的 proxy 去接手並轉發給 localhost:3001 或 backend:3001
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  withCredentials: true, // 保留 cookie 向後相容
   headers: {
     'Content-Type': 'application/json'
   }
@@ -118,7 +117,6 @@ api.interceptors.response.use(
           {},
           {
             headers: { Authorization: `Bearer ${refreshToken}` },
-            withCredentials: true,
           }
         );
 
