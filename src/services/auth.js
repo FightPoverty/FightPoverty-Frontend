@@ -1,4 +1,4 @@
-import api from './api';
+import api, { tokenManager } from './api';
 
 // ─────────────────────────────────────────────────────────
 // 認證服務
@@ -11,13 +11,22 @@ export const authService = {
       password,
       role
     });
+    // 將 token 存入 localStorage（Bearer Token 模式）
+    if (response.data?.accessToken && response.data?.refreshToken) {
+      tokenManager.setTokens(response.data.accessToken, response.data.refreshToken);
+    }
     return response.data;
   },
 
   // 登出
   logout: async () => {
-    const response = await api.post('/auth/logout');
-    return response.data;
+    try {
+      const response = await api.post('/auth/logout');
+      return response.data;
+    } finally {
+      // 不論 API 成功或失敗，一律清除本地 token
+      tokenManager.clearTokens();
+    }
   },
 
   // 取得當前用戶資訊
@@ -35,6 +44,10 @@ export const authService = {
   // 刷新 token
   refreshToken: async () => {
     const response = await api.post('/auth/refresh');
+    // 更新 localStorage 中的 access token
+    if (response.data?.accessToken) {
+      tokenManager.setTokens(response.data.accessToken, null);
+    }
     return response.data;
   }
 };

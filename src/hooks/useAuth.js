@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { authService } from '../services/auth';
+import { tokenManager } from '../services/api';
 
 export const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -14,20 +15,28 @@ export const useAuth = () => {
   const checkAuth = async () => {
     try {
       setLoading(true);
-      // 先驗證 token 是否有效
-      const verifyResponse = await authService.verifyToken();
-      if (verifyResponse.success) {
-        // 如果有效，取得完整使用者資訊
-        const meResponse = await authService.getCurrentUser();
-        if (meResponse.success) {
-          setUser(meResponse.user);
-        } else {
-          setUser(verifyResponse.user);
-        }
+
+      // 先檢查 localStorage 是否有 token
+      const token = tokenManager.getAccessToken();
+      if (!token) {
+        // 沒有 token，直接判定為未登入
+        setUser(null);
+        return;
+      }
+
+      // 有 token，向後端驗證並取得完整使用者資訊
+      const meResponse = await authService.getCurrentUser();
+      if (meResponse.success) {
+        setUser(meResponse.user);
+      } else {
+        setUser(null);
+        tokenManager.clearTokens();
       }
     } catch (err) {
       console.log('Not authenticated');
       setUser(null);
+      // token 無效或過期（且 refresh 也失敗），清除
+      tokenManager.clearTokens();
     } finally {
       setLoading(false);
     }
@@ -57,6 +66,7 @@ export const useAuth = () => {
     } catch (err) {
       console.error('Logout error:', err);
       // 即使 API 失敗也清除本地狀態
+      tokenManager.clearTokens();
       setUser(null);
     }
   };
